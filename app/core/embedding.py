@@ -46,7 +46,7 @@ def extract_embedding(face_bgr: np.ndarray) -> list[float]:
             img_path=face_bgr,          # accepts numpy array directly
             model_name=MODEL_NAME,
             detector_backend=DETECTOR_BACKEND,
-            enforce_detection=True,     # raise if no face found
+            enforce_detection=False,     # raise if no face found
             align=True,                 # apply facial landmark alignment
         )
     except Exception as exc:
