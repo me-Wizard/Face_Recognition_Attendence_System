@@ -1,15 +1,23 @@
+# ── Web Framework ─────────────────────────────────────────────────────────────
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
 pydantic-settings>=2.3.0
+pydantic>=2.0.0
+
+# ── Computer Vision ───────────────────────────────────────────────────────────
 opencv-python>=4.9.0.80
 numpy>=1.26,<2.0
 
-# ── Future: Database (uncomment when implementing db/) ────────────────────────
-# sqlalchemy==2.0.30
-# alembic==1.13.1
-# psycopg2-binary==2.9.9        # PostgreSQL driver
-# python-dotenv==1.0.1
+# ── Face Embeddings ───────────────────────────────────────────────────────────
+deepface>=0.0.93
+tensorflow>=2.13.0
+tf-keras>=2.13.0
 
-# ── Future: Embeddings & Matching (uncomment when implementing core/embedding.py) ──
-# faiss-cpu==1.8.0
-# scikit-learn==1.4.2
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+alembic>=1.13.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+python-multipart>=0.0.7
