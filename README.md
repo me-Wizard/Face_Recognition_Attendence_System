@@ -1,181 +1,133 @@
 # Face Attendance System
 
-Real-time face detection system built with **FastAPI** + **OpenCV**.  
-Designed with a strict modular architecture so embedding, FAISS matching, and database attendance recording can be added incrementally without refactoring existing code.
+A modular real-time face recognition system for attendance tracking,
+built with FastAPI, OpenCV, DeepFace, and PostgreSQL.
 
 ---
 
-## Features (Phase 1 — Detection)
+## Tech Stack
 
-| Feature | Status |
-|---|---|
-| Webcam capture via OpenCV | ✅ |
-| Grayscale conversion | ✅ |
-| CLAHE brightness normalisation | ✅ |
-| Haar Cascade face detection | ✅ |
-| Bounding box drawing | ✅ |
-| "Face Detected / No Face Detected" status | ✅ |
-| Zoomed crop window per face | ✅ |
-| Exit loop with `q` key | ✅ |
-| `/camera/start` API endpoint | ✅ |
-| `/detect/status` API endpoint | ✅ |
+- **FastAPI** — REST API framework
+- **OpenCV** — webcam capture and image processing
+- **DeepFace + FaceNet** — face embedding generation
+- **PostgreSQL** — persistent storage
+- **SQLAlchemy** — ORM and database sessions
+- **NumPy** — cosine similarity matching
 
 ---
 
 ## Project Structure
-
-```
 face-attendance-system/
 ├── app/
-│   ├── main.py                        # FastAPI app factory, router registration
-│   │
+│   ├── main.py
 │   ├── api/
 │   │   └── routes/
-│   │       ├── camera.py              # GET /camera/start
-│   │       ├── detect.py              # GET /detect/status
-│   │       ├── enroll.py              # PLACEHOLDER — enrollment
-│   │       └── recognize.py           # PLACEHOLDER — recognition
-│   │
+│   │       ├── camera.py
+│   │       ├── detect.py
+│   │       ├── enroll.py
+│   │       └── recognize.py
 │   ├── core/
-│   │   ├── camera.py                  # Camera class (open / read / release)
-│   │   ├── detector.py                # FaceDetector (Haar Cascade)
-│   │   ├── image_utils.py             # CLAHE, draw boxes, crop faces
-│   │   ├── embedding.py               # PLACEHOLDER — face embeddings
-│   │   └── matcher.py                 # PLACEHOLDER — FAISS matching
-│   │
+│   │   ├── camera.py
+│   │   ├── detector.py
+│   │   ├── image_utils.py
+│   │   ├── embedding.py
+│   │   ├── matcher.py
+│   │   └── quality.py
 │   ├── services/
-│   │   ├── detection_service.py       # Orchestrates the full detection loop
-│   │   └── attendance_service.py      # PLACEHOLDER — attendance recording
-│   │
+│   │   ├── detection_service.py
+│   │   ├── enrollment_service.py
+│   │   ├── recognition_service.py
+│   │   └── attendance_service.py
 │   └── db/
-│       ├── connection.py              # PLACEHOLDER — DB engine & sessions
-│       └── models.py                  # PLACEHOLDER — ORM models
-│
+│       ├── connection.py
+│       ├── models.py
+│       └── crud.py
+├── .env
 ├── requirements.txt
 └── README.md
-```
 
 ---
 
-## Quickstart
+## Setup
 
-### 1. Install dependencies
-
+**1. Create environment**
 ```bash
+conda create -n attendance python=3.10 -y
+conda activate attendance
 pip install -r requirements.txt
 ```
 
-### 2. Start the API server
+**2. Create database**
+```sql
+CREATE DATABASE face_attendance;
+```
 
+**3. Configure `.env`**
+```env
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/face_attendance
+```
+
+**4. Start server**
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 3. Open interactive API docs
+---
 
-```
-http://127.0.0.1:8000/docs
-```
+## API Endpoints
 
-### 4. Start face detection
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/camera/start` | Start live detection loop |
+| GET | `/detect/status` | Current detection state |
+| POST | `/enroll/start` | Enroll a new person |
+| GET | `/enroll/{employee_id}` | Check enrollment |
+| DELETE | `/enroll/{employee_id}` | Remove a person |
+| POST | `/recognize` | Single-shot recognition |
+| GET | `/recognize/start` | Start live recognition loop |
+| GET | `/docs` | Swagger UI |
 
-```bash
-curl http://127.0.0.1:8000/camera/start
-```
+---
 
-An OpenCV window titled **"Face Detection — Press 'q' to quit"** will open.  
-A second window per face (e.g. **"Face 1"**) shows the cropped 200×200 region.  
-Press **`q`** inside the OpenCV window to stop.
-
-### 5. Check detection status
-
-```bash
-curl http://127.0.0.1:8000/detect/status
-```
-
-Example response:
+## Enrollment Request
 
 ```json
 {
-  "running": true,
-  "face_detected": true,
-  "face_count": 1,
-  "status_label": "Face Detected"
+  "name": "John Doe",
+  "employee_id": "EMP-001",
+  "department": "Engineering"
+}
+```
+
+## Recognition Response
+
+```json
+{
+  "matched": true,
+  "name": "John Doe",
+  "employee_id": "EMP-001",
+  "department": "Engineering",
+  "confidence": 0.85
 }
 ```
 
 ---
 
-## API Reference
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | System info |
-| `GET` | `/camera/start` | Start detection loop (background thread) |
-| `GET` | `/detect/status` | Live detection state snapshot |
-| `GET` | `/docs` | Swagger UI |
+## Database Schema
+users
+id, name, employee_id, department, enrolled_at
+embeddings
+id, user_id (FK), vector (JSONB 128-D), sample_idx, created_at
 
 ---
 
-## Frame Processing Pipeline
+## Recognition Settings
 
-```
-Webcam frame (BGR)
-       │
-       ▼
- to_grayscale()          → single-channel H×W array
-       │
-       ▼
- apply_clahe()           → brightness-normalised grayscale
-       │
-       ▼
- FaceDetector.detect()   → list of (x, y, w, h) bounding boxes
-       │
-       ▼
- draw_bounding_boxes()   → annotated BGR frame  ─────────► imshow("Face Detection")
-       │
-       ▼
- show_cropped_faces()    → 200×200 crops        ─────────► imshow("Face N")
-```
-
----
-
-## Architecture Rules
-
-- **Routes** contain zero OpenCV or business logic — they call services only.  
-- **Services** orchestrate core modules — they own the processing loop.  
-- **Core modules** are pure functions / classes with no cross-module imports.  
-- **DB and embedding modules** are empty placeholders with full docstrings.
-
----
-
-## Scaling Roadmap
-
-```
-Phase 1 (current)   Detection only
-Phase 2             Add embedding.py → extract 128-D face vectors
-Phase 3             Add matcher.py   → FAISS nearest-neighbour search
-Phase 4             Add db/          → SQLAlchemy + PostgreSQL
-Phase 5             Add enroll.py    → Register students via API
-Phase 6             Add recognize.py → Full attendance marking pipeline
-```
-
----
-
-## Detection Parameters
-
-Tunable in `app/core/detector.py`:
-
-| Parameter | Value | Effect |
-|---|---|---|
-| `scaleFactor` | `1.1` | 10 % image pyramid reduction per level |
-| `minNeighbors` | `6` | Higher = fewer false positives |
-| `minSize` | `(60, 60)` | Ignore faces smaller than 60×60 px |
-| `MAX_FACES` | `3` | Cap detections to 3 per frame |
-
-CLAHE parameters in `app/core/image_utils.py`:
-
-| Parameter | Value |
+| Setting | Value |
 |---|---|
-| `clipLimit` | `2.0` |
-| `tileGridSize` | `(8, 8)` |
+| Similarity threshold | 0.65 |
+| Embeddings per user | 5 |
+| Max faces per frame | 3 |
+| Embedding model | FaceNet (128-D) |
+
+---
