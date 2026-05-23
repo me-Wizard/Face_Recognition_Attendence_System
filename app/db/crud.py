@@ -1,3 +1,5 @@
+#C:\Attencence_System\app\db\crud.py
+
 """
 app/db/crud.py
 --------------
@@ -10,17 +12,17 @@ Rules:
 """
 
 import uuid
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.db.models import User, FaceEmbedding
+from app.db.models import User, FaceEmbedding, Attendance
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────
 
 def get_user_by_employee_id(db: Session, employee_id: str) -> Optional[User]:
-    """Return a User row by employee_id, or None if not found."""
     return db.query(User).filter(User.employee_id == employee_id).first()
 
 
@@ -30,10 +32,6 @@ def create_user(
     employee_id: str,
     department: str,
 ) -> User:
-    """
-    Insert a new user row and return it.
-    Raises ValueError if employee_id already exists.
-    """
     existing = get_user_by_employee_id(db, employee_id)
     if existing:
         raise ValueError(f"Employee ID '{employee_id}' is already enrolled.")
@@ -51,7 +49,6 @@ def create_user(
 
 
 def delete_user(db: Session, employee_id: str) -> bool:
-    """Delete a user and all their embeddings. Returns True if deleted."""
     user = get_user_by_employee_id(db, employee_id)
     if not user:
         return False
@@ -68,7 +65,6 @@ def save_embedding(
     vector: list[float],
     sample_idx: int,
 ) -> FaceEmbedding:
-    """Insert one embedding row linked to user_id."""
     emb = FaceEmbedding(
         user_id=user_id,
         vector=vector,
@@ -85,10 +81,6 @@ def save_all_embeddings(
     user_id: uuid.UUID,
     vectors: list[list[float]],
 ) -> list[FaceEmbedding]:
-    """
-    Bulk-insert all embeddings for a user in a single transaction.
-    vectors[0] → sample_idx=1, vectors[1] → sample_idx=2, etc.
-    """
     rows = [
         FaceEmbedding(user_id=user_id, vector=vec, sample_idx=idx + 1)
         for idx, vec in enumerate(vectors)
@@ -99,7 +91,6 @@ def save_all_embeddings(
 
 
 def get_embeddings_by_user(db: Session, user_id: uuid.UUID) -> list[FaceEmbedding]:
-    """Return all embedding rows for a given user UUID."""
     return (
         db.query(FaceEmbedding)
         .filter(FaceEmbedding.user_id == user_id)
@@ -109,7 +100,6 @@ def get_embeddings_by_user(db: Session, user_id: uuid.UUID) -> list[FaceEmbeddin
 
 
 def get_all_users_with_embeddings(db: Session) -> list[User]:
-    """Return all users who have at least one embedding (for recognition use)."""
     return (
         db.query(User)
         .join(FaceEmbedding)
@@ -117,21 +107,14 @@ def get_all_users_with_embeddings(db: Session) -> list[User]:
         .all()
     )
 
+
 # ── Recognition ───────────────────────────────────────────────────────────────
 
 def get_user_by_id(db: Session, user_id) -> Optional[User]:
-    """Return a User row by UUID primary key, or None if not found."""
     return db.query(User).filter(User.id == user_id).first()
 
 
 def get_all_embeddings(db: Session) -> list:
-    """
-    Fetch every embedding row joined with its user data.
-    Returns a flat list of dicts — one entry per stored embedding vector.
-
-    Returns:
-        List of dicts with keys: user_id, employee_id, name, department, vector
-    """
     rows = (
         db.query(FaceEmbedding, User)
         .join(User, FaceEmbedding.user_id == User.id)
@@ -146,6 +129,71 @@ def get_all_embeddings(db: Session) -> list:
             "name":        user.name,
             "department":  user.department,
             "vector":      embedding.vector,
+        })
+
+    return result
+
+
+# ── Attendance ────────────────────────────────────────────────────────────────
+
+def check_attendance_today(db: Session, user_id: uuid.UUID) -> bool:
+    """
+    Return True if the user already has an attendance record for today.
+    """
+    today = date.today()
+    record = (
+        db.query(Attendance)
+        .filter(
+            Attendance.user_id == user_id,
+            Attendance.date == today,
+        )
+        .first()
+    )
+    return record is not None
+
+
+def mark_attendance(db: Session, user_id: uuid.UUID, status: str = "present") -> Attendance:
+    """
+    Insert a new attendance record for the user.
+    Caller must check check_attendance_today() before calling this.
+    """
+    now = datetime.utcnow()
+    record = Attendance(
+        user_id=user_id,
+        date=now.date(),
+        time=now.time(),
+        status=status,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def get_today_attendance(db: Session) -> list[dict]:
+    """
+    Return all attendance records for today joined with user info.
+    """
+    today = date.today()
+    rows = (
+        db.query(Attendance, User)
+        .join(User, Attendance.user_id == User.id)
+        .filter(Attendance.date == today)
+        .order_by(Attendance.time)
+        .all()
+    )
+
+    result = []
+    for record, user in rows:
+        result.append({
+            "attendance_id": record.id,
+            "user_id":       str(user.id),
+            "name":          user.name,
+            "employee_id":   user.employee_id,
+            "department":    user.department,
+            "date":          str(record.date),
+            "time":          str(record.time),
+            "status":        record.status,
         })
 
     return result
