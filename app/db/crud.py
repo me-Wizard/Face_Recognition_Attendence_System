@@ -116,3 +116,36 @@ def get_all_users_with_embeddings(db: Session) -> list[User]:
         .distinct()
         .all()
     )
+
+# ── Recognition ───────────────────────────────────────────────────────────────
+
+def get_user_by_id(db: Session, user_id) -> Optional[User]:
+    """Return a User row by UUID primary key, or None if not found."""
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def get_all_embeddings(db: Session) -> list:
+    """
+    Fetch every embedding row joined with its user data.
+    Returns a flat list of dicts — one entry per stored embedding vector.
+
+    Returns:
+        List of dicts with keys: user_id, employee_id, name, department, vector
+    """
+    rows = (
+        db.query(FaceEmbedding, User)
+        .join(User, FaceEmbedding.user_id == User.id)
+        .all()
+    )
+
+    result = []
+    for embedding, user in rows:
+        result.append({
+            "user_id":     str(user.id),
+            "employee_id": user.employee_id,
+            "name":        user.name,
+            "department":  user.department,
+            "vector":      embedding.vector,
+        })
+
+    return result
