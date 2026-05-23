@@ -13,6 +13,7 @@ built with FastAPI, OpenCV, DeepFace, and PostgreSQL.
 - **PostgreSQL** — persistent storage
 - **SQLAlchemy** — ORM and database sessions
 - **NumPy** — cosine similarity matching
+- **Pandas** — CSV export and data processing
 
 ---
 
@@ -26,7 +27,8 @@ face-attendance-system/
 │   │       ├── detect.py
 │   │       ├── enroll.py
 │   │       ├── recognize.py
-│   │       └── attendance.py
+│   │       ├── attendance.py
+│   │       └── system.py
 │   ├── core/
 │   │   ├── camera.py
 │   │   ├── detector.py
@@ -91,6 +93,10 @@ All tables are auto-created on startup.
 | GET | `/recognize/start` | Start live recognition + attendance loop |
 | GET | `/attendance/today` | Get today's attendance records |
 | GET | `/attendance/status` | Get attendance system state |
+| GET | `/attendance/history` | Get paginated attendance history |
+| GET | `/attendance/absent` | Get users not marked today |
+| GET | `/attendance/export/csv` | Download today's attendance as CSV |
+| GET | `/system/status` | Get live system metrics |
 | GET | `/docs` | Swagger UI |
 
 ---
@@ -146,6 +152,32 @@ All tables are auto-created on startup.
 {
   "status": "failed",
   "message": "Unknown User"
+}
+```
+
+## History Query Parameters
+GET /attendance/history?employee_id=EMP-001&from_date=2026-01-01&to_date=2026-05-01&page=1&page_size=20
+
+| Parameter | Type | Description |
+|---|---|---|
+| `employee_id` | string | Filter by employee ID |
+| `from_date` | date | Start date (YYYY-MM-DD) |
+| `to_date` | date | End date (YYYY-MM-DD) |
+| `page` | int | Page number (default 1) |
+| `page_size` | int | Records per page (default 20, max 100) |
+
+## System Status Response
+
+```json
+{
+  "camera_active": true,
+  "fps": 24.5,
+  "avg_latency_ms": 38.2,
+  "total_frames": 1200,
+  "processed_frames": 400,
+  "enrolled_users": 5,
+  "attendance_today": 3,
+  "recognition_active": true
 }
 ```
 
@@ -205,7 +237,20 @@ display result on camera overlay
 | Accumulating frames | `Recognized (N/5)` | Green |
 | Attendance marked | `Attendance Marked` | Cyan |
 | Already marked today | `Already Marked Present` | Orange |
+| In cooldown | `Attendance Marked` | Orange |
 | Not recognized | `Unknown` | Red |
+
+---
+
+## Performance Optimizations (Phase 5)
+
+| Feature | Detail |
+|---|---|
+| Frame skipping | Processes every 3rd frame only |
+| Overlay caching | Last known overlay redrawn on skipped frames |
+| DB prefetch | Embeddings fetched once, refreshed every 60 processed frames |
+| FPS tracking | Rolling average over last 30 frames |
+| Latency tracking | Per-frame processing time monitored live |
 
 ---
 
@@ -220,6 +265,7 @@ display result on camera overlay
 | Stable frames required | 5 consecutive |
 | Cooldown after marking | 15 seconds |
 | Attendance per day | Once per user |
+| Frame skip rate | Every 3rd frame processed |
 
 ---
 
@@ -231,6 +277,7 @@ display result on camera overlay
 | Phase 2 | FaceNet enrollment with PostgreSQL |
 | Phase 3 | Cosine similarity recognition |
 | Phase 4 | Attendance management with duplicate prevention |
+| Phase 5 | Dashboard, history, export, FPS optimization, system monitoring |
 
 ---
 
@@ -241,4 +288,7 @@ Start recognition   →  GET  /recognize/start
 Face detected       →  system counts 5 stable frames
 Attendance marked   →  overlay shows "Attendance Marked"
 Check records       →  GET  /attendance/today
-
+View history        →  GET  /attendance/history
+Check absent        →  GET  /attendance/absent
+Export CSV          →  GET  /attendance/export/csv
+Monitor system      →  GET  /system/status
