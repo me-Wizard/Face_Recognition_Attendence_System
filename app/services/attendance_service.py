@@ -12,36 +12,36 @@ Responsibilities:
 - Check duplicate attendance for today.
 - Mark attendance via crud layer.
 - Return structured attendance status response.
+- Provide attendance history, absent users, and CSV export.
 
 State maintained in module-level memory (no DB for frame tracking).
 """
 
+import io
 import time
 import uuid
+from datetime import date
 from typing import Optional
 
+import pandas as pd
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db import crud
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-STABLE_FRAME_REQUIRED = 5       # consecutive frames before marking
-COOLDOWN_SECONDS      = 15      # ignore same user for N seconds after marking
+STABLE_FRAME_REQUIRED = 5
+COOLDOWN_SECONDS      = 15
 
 # ── In-memory state ───────────────────────────────────────────────────────────
 
-# tracks consecutive recognition count per employee_id
-_frame_counter: dict[str, int] = {}
-
-# tracks last attendance-marked timestamp per employee_id
+_frame_counter:    dict[str, int]   = {}
 _cooldown_tracker: dict[str, float] = {}
-
-# tracks last attendance result per employee_id for overlay display
-_last_status: dict[str, dict] = {}
+_last_status:      dict[str, dict]  = {}
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+# ── Core attendance logic ─────────────────────────────────────────────────────
 
 def process_recognition(
     db: Session,
@@ -50,22 +50,6 @@ def process_recognition(
     name: str,
     confidence: float,
 ) -> dict:
-    """
-    Called every frame when a face is matched.
-
-    Steps:
-        1. Check cooldown — skip if still cooling down.
-        2. Increment stable frame counter.
-        3. If stable frame threshold reached:
-            a. Check duplicate attendance for today.
-            b. Mark attendance if not already marked.
-        4. Return status dict for overlay rendering.
-
-    Returns:
-        dict with keys: status, message, name, employee_id, confidence
-    """
-
-    # ── Step 1: Cooldown check ────────────────────────────────────────────────
     if _is_in_cooldown(employee_id):
         return _last_status.get(employee_id, {
             "status":      "cooldown",
@@ -75,11 +59,9 @@ def process_recognition(
             "confidence":  confidence,
         })
 
-    # ── Step 2: Increment frame counter ──────────────────────────────────────
     _frame_counter[employee_id] = _frame_counter.get(employee_id, 0) + 1
     current_count = _frame_counter[employee_id]
 
-    # Not yet stable — still accumulating frames
     if current_count < STABLE_FRAME_REQUIRED:
         return {
             "status":      "recognizing",
@@ -89,10 +71,8 @@ def process_recognition(
             "confidence":  confidence,
         }
 
-    # ── Step 3: Stable — attempt attendance marking ───────────────────────────
     uid = uuid.UUID(user_id)
 
-    # Step 3a: Duplicate check
     already_marked = crud.check_attendance_today(db, uid)
     if already_marked:
         _set_cooldown(employee_id)
@@ -107,7 +87,6 @@ def process_recognition(
         _last_status[employee_id] = status
         return status
 
-    # Step 3b: Mark attendance
     crud.mark_attendance(db, uid, status="present")
     _set_cooldown(employee_id)
     _reset_frame_counter(employee_id)
@@ -124,27 +103,91 @@ def process_recognition(
 
 
 def reset_frame_counter_for(employee_id: str) -> None:
-    """
-    Call this when the same face is NOT recognized in a frame.
-    Resets the consecutive counter so stability must restart.
-    """
     _frame_counter.pop(employee_id, None)
 
 
 def get_system_status() -> dict:
-    """
-    Return current in-memory attendance system state.
-    Used by GET /attendance/status.
-    """
     return {
         "stable_frame_required": STABLE_FRAME_REQUIRED,
         "cooldown_seconds":      COOLDOWN_SECONDS,
         "active_frame_counters": dict(_frame_counter),
-        "users_in_cooldown":     [
+        "users_in_cooldown": [
             eid for eid, ts in _cooldown_tracker.items()
             if time.time() - ts < COOLDOWN_SECONDS
         ],
     }
+
+
+# ── Dashboard services ────────────────────────────────────────────────────────
+
+def get_today_attendance(db: Session) -> dict:
+    """
+    Return today's full attendance list with count and date.
+    """
+    records = crud.get_today_attendance(db)
+    return {
+        "date":    str(date.today()),
+        "count":   len(records),
+        "records": records,
+    }
+
+
+def get_attendance_history(
+    db: Session,
+    employee_id: Optional[str] = None,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    """
+    Return paginated attendance history with optional filters.
+    """
+    return crud.get_attendance_history(
+        db=db,
+        employee_id=employee_id,
+        from_date=from_date,
+        to_date=to_date,
+        page=page,
+        page_size=page_size,
+    )
+
+
+def get_absent_users(db: Session) -> dict:
+    """
+    Return all users not marked present today.
+    """
+    absent = crud.get_absent_users(db)
+    return {
+        "date":   str(date.today()),
+        "count":  len(absent),
+        "absent": absent,
+    }
+
+
+def export_attendance_csv(db: Session) -> StreamingResponse:
+    """
+    Generate and return today's attendance as a downloadable CSV.
+    Uses pandas to build the CSV in memory — no file written to disk.
+    """
+    records = crud.get_today_attendance(db)
+
+    if not records:
+        df = pd.DataFrame(columns=["name", "employee_id", "department", "date", "time", "status"])
+    else:
+        df = pd.DataFrame(records)[["name", "employee_id", "department", "date", "time", "status"]]
+
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False)
+    buffer.seek(0)
+
+    filename = f"attendance_{date.today()}.csv"
+
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

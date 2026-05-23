@@ -137,9 +137,6 @@ def get_all_embeddings(db: Session) -> list:
 # ── Attendance ────────────────────────────────────────────────────────────────
 
 def check_attendance_today(db: Session, user_id: uuid.UUID) -> bool:
-    """
-    Return True if the user already has an attendance record for today.
-    """
     today = date.today()
     record = (
         db.query(Attendance)
@@ -153,10 +150,6 @@ def check_attendance_today(db: Session, user_id: uuid.UUID) -> bool:
 
 
 def mark_attendance(db: Session, user_id: uuid.UUID, status: str = "present") -> Attendance:
-    """
-    Insert a new attendance record for the user.
-    Caller must check check_attendance_today() before calling this.
-    """
     now = datetime.utcnow()
     record = Attendance(
         user_id=user_id,
@@ -171,9 +164,6 @@ def mark_attendance(db: Session, user_id: uuid.UUID, status: str = "present") ->
 
 
 def get_today_attendance(db: Session) -> list[dict]:
-    """
-    Return all attendance records for today joined with user info.
-    """
     today = date.today()
     rows = (
         db.query(Attendance, User)
@@ -197,3 +187,92 @@ def get_today_attendance(db: Session) -> list[dict]:
         })
 
     return result
+
+
+def get_attendance_history(
+    db: Session,
+    employee_id: Optional[str] = None,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    """
+    Return paginated attendance history with optional filters.
+    """
+    query = (
+        db.query(Attendance, User)
+        .join(User, Attendance.user_id == User.id)
+    )
+
+    if employee_id:
+        query = query.filter(User.employee_id == employee_id)
+    if from_date:
+        query = query.filter(Attendance.date >= from_date)
+    if to_date:
+        query = query.filter(Attendance.date <= to_date)
+
+    total   = query.count()
+    offset  = (page - 1) * page_size
+    rows    = query.order_by(Attendance.date.desc(), Attendance.time.desc()).offset(offset).limit(page_size).all()
+
+    records = []
+    for record, user in rows:
+        records.append({
+            "attendance_id": record.id,
+            "name":          user.name,
+            "employee_id":   user.employee_id,
+            "department":    user.department,
+            "date":          str(record.date),
+            "time":          str(record.time),
+            "status":        record.status,
+        })
+
+    return {
+        "total":     total,
+        "page":      page,
+        "page_size": page_size,
+        "pages":     (total + page_size - 1) // page_size,
+        "records":   records,
+    }
+
+
+def get_absent_users(db: Session) -> list[dict]:
+    """
+    Return all enrolled users who have NO attendance record today.
+    """
+    today = date.today()
+
+    present_user_ids = (
+        db.query(Attendance.user_id)
+        .filter(Attendance.date == today)
+        .subquery()
+    )
+
+    absent_users = (
+        db.query(User)
+        .filter(User.id.notin_(present_user_ids))
+        .all()
+    )
+
+    return [
+        {
+            "user_id":     str(u.id),
+            "name":        u.name,
+            "employee_id": u.employee_id,
+            "department":  u.department,
+        }
+        for u in absent_users
+    ]
+
+
+def get_total_enrolled_users(db: Session) -> int:
+    return db.query(User).count()
+
+
+def get_total_attendance_today(db: Session) -> int:
+    return (
+        db.query(Attendance)
+        .filter(Attendance.date == date.today())
+        .count()
+    )
