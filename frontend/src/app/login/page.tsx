@@ -5,12 +5,12 @@ import { Eye, EyeOff, Scan, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
-  const { login }                = useAuth()
-  const [email,    setEmail]     = useState('')
-  const [password, setPassword]  = useState('')
-  const [showPass, setShowPass]  = useState(false)
-  const [loading,  setLoading]   = useState(false)
-  const [error,    setError]     = useState('')
+  const { login } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,8 +36,8 @@ export default function LoginPage() {
           }}
         />
         <motion.div
-          animate={{ scale:[1,1.1,1], opacity:[0.15,0.25,0.15] }}
-          transition={{ repeat:Infinity, duration:6, ease:'easeInOut' }}
+          animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
           className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-blue-600 blur-3xl"
         />
         <div className="relative z-10 flex items-center gap-3">
@@ -48,21 +48,21 @@ export default function LoginPage() {
         </div>
         <div className="relative z-10 space-y-6">
           <div>
-            <motion.h1 initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.2 }}
+            <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
               className="text-4xl font-bold text-white leading-tight"
             >
               AI-Powered<br /><span className="text-blue-400">Face Attendance</span>
             </motion.h1>
-            <motion.p initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }}
+            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               className="mt-4 text-zinc-400 text-sm leading-relaxed"
             >
               Enterprise-grade face recognition attendance system. Secure, fast, and accurate.
             </motion.p>
           </div>
-          <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.4 }}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="grid grid-cols-3 gap-4"
           >
-            {[{label:'Accuracy',value:'99.2%'},{label:'Speed',value:'<1s'},{label:'Uptime',value:'99.9%'}].map(s => (
+            {[{ label: 'Accuracy', value: '99.2%' }, { label: 'Speed', value: '<1s' }, { label: 'Uptime', value: '99.9%' }].map(s => (
               <div key={s.label} className="rounded-xl bg-zinc-800/50 border border-zinc-700/30 p-4">
                 <p className="text-xl font-bold text-blue-400">{s.value}</p>
                 <p className="text-xs text-zinc-500 mt-1">{s.label}</p>
@@ -75,7 +75,7 @@ export default function LoginPage() {
 
       {/* Right form */}
       <div className="flex-1 flex items-center justify-center p-6">
-        <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.5 }}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
           <div className="flex items-center gap-2 mb-8 lg:hidden">
@@ -91,6 +91,10 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <p className="text-center text-xs text-zinc-500">
+              Don&apos;t have an account?{' '}
+              <a href="/register" className="text-blue-400 hover:text-blue-300 transition-colors">Create one</a>
+            </p>
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5">Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -115,7 +119,7 @@ export default function LoginPage() {
 
             <AnimatePresence>
               {error && (
-                <motion.div initial={{ opacity:0, y:-5 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+                <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="flex items-center gap-2 p-3 rounded-xl bg-red-500/5 border border-red-500/20"
                 >
                   <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
@@ -124,12 +128,13 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
-            <motion.button whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }}
+            <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               type="submit" disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</> : 'Sign in'}
             </motion.button>
+            
           </form>
         </motion.div>
       </div>
