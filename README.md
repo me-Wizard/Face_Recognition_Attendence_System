@@ -1,256 +1,266 @@
 # Face Attendance System
 
-A modular real-time face recognition and attendance tracking system,
-built with FastAPI, OpenCV, DeepFace, and PostgreSQL.
+An enterprise-grade AI-powered face recognition attendance platform with role-based access control, built with FastAPI, Next.js, OpenCV, and DeepFace.
 
 ---
 
 ## Tech Stack
 
+### Backend
 - **FastAPI** — REST API framework
-- **OpenCV** — webcam capture and image processing
-- **DeepFace + FaceNet** — face embedding generation
-- **PostgreSQL** — persistent storage
+- **OpenCV** — Webcam capture and image processing
+- **DeepFace + FaceNet** — Face embedding generation
+- **PostgreSQL** — Persistent storage
 - **SQLAlchemy** — ORM and database sessions
-- **NumPy** — cosine similarity matching
-- **Pandas** — CSV export and data processing
+- **NumPy** — Cosine similarity matching
+- **Pandas** — CSV export
+- **JWT + bcrypt** — Authentication
+
+### Frontend
+- **Next.js 14** — App Router
+- **TypeScript** — Type safety
+- **Tailwind CSS** — Styling
+- **Framer Motion** — Animations
+- **Recharts** — Analytics charts
+- **Axios** — API communication
 
 ---
 
 ## Project Structure
-face-attendance-system/
-├── app/
-│   ├── main.py
-│   ├── api/
-│   │   └── routes/
-│   │       ├── camera.py
-│   │       ├── detect.py
-│   │       ├── enroll.py
-│   │       ├── recognize.py
-│   │       ├── attendance.py
-│   │       └── system.py
-│   ├── core/
-│   │   ├── camera.py
-│   │   ├── detector.py
-│   │   ├── image_utils.py
-│   │   ├── embedding.py
-│   │   ├── matcher.py
-│   │   └── quality.py
-│   ├── services/
-│   │   ├── detection_service.py
-│   │   ├── enrollment_service.py
-│   │   ├── recognition_service.py
-│   │   └── attendance_service.py
-│   └── db/
-│       ├── connection.py
-│       ├── models.py
-│       └── crud.py
-├── .env
-├── requirements.txt
-└── README.md
+
+```
+Attencence_System/
+├── Backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── api/
+│   │   │   └── routes/
+│   │   │       ├── auth.py
+│   │   │       ├── camera.py
+│   │   │       ├── detect.py
+│   │   │       ├── enroll.py
+│   │   │       ├── recognize.py
+│   │   │       ├── attendance.py
+│   │   │       └── system.py
+│   │   ├── core/
+│   │   │   ├── camera.py
+│   │   │   ├── detector.py
+│   │   │   ├── image_utils.py
+│   │   │   ├── embedding.py
+│   │   │   ├── matcher.py
+│   │   │   └── quality.py
+│   │   ├── services/
+│   │   │   ├── auth_service.py
+│   │   │   ├── detection_service.py
+│   │   │   ├── enrollment_service.py
+│   │   │   ├── recognition_service.py
+│   │   │   └── attendance_service.py
+│   │   └── db/
+│   │       ├── connection.py
+│   │       ├── models.py
+│   │       └── crud.py
+│   ├── requirements.txt
+│   └── .env
+└── frontend/
+    ├── src/
+    │   ├── app/
+    │   │   ├── login/
+    │   │   ├── register/
+    │   │   ├── admin/
+    │   │   │   ├── dashboard/
+    │   │   │   ├── recognition/
+    │   │   │   ├── enrollment/
+    │   │   │   ├── attendance/
+    │   │   │   ├── analytics/
+    │   │   │   ├── system/
+    │   │   │   └── users/
+    │   │   └── user/
+    │   │       ├── dashboard/
+    │   │       ├── attendance/
+    │   │       ├── statistics/
+    │   │       ├── export/
+    │   │       └── profile/
+    │   ├── components/
+    │   │   ├── admin/
+    │   │   ├── user/
+    │   │   └── shared/
+    │   ├── context/
+    │   ├── hooks/
+    │   ├── services/
+    │   ├── types/
+    │   └── lib/
+    ├── package.json
+    └── .env.local
+```
 
 ---
 
 ## Setup
 
-**1. Create environment**
-```bash
-conda create -n attendance python=3.10 -y
-conda activate attendance
-pip install -r requirements.txt
-```
+### Prerequisites
+- Python 3.10
+- Node.js 18+
+- PostgreSQL
+- Conda
 
-**2. Create database**
+### 1. Create Database
 ```sql
 CREATE DATABASE face_attendance;
 ```
 
-**3. Configure `.env`**
-```env
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/face_attendance
+### 2. Backend Setup
+```bash
+conda create -n attendance python=3.10 -y
+conda activate attendance
+cd Backend
+pip install -r requirements.txt
 ```
 
-**4. Start server**
+Create `.env` file in `Backend/`:
+```env
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/face_attendance
+JWT_SECRET=your-secret-key-here
+```
+
+Start backend:
 ```bash
 uvicorn app.main:app --reload
 ```
 
-All tables are auto-created on startup.
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Create `.env.local` in `frontend/`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+---
+
+## First Time Usage
+
+### 1. Create your first account
+Go to `http://localhost:3000/register`
+
+- Select **Admin** role for full access
+- Select **User** role for personal attendance view only
+
+### 2. Login
+Go to `http://localhost:3000/login`
+
+System automatically redirects based on role:
+- Admin → `/admin/dashboard`
+- User → `/user/dashboard`
 
 ---
 
 ## API Endpoints
 
+### Auth
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | System info and version |
-| GET | `/camera/start` | Start live detection loop |
-| GET | `/detect/status` | Current detection state |
-| POST | `/enroll/start` | Enroll a new person |
-| GET | `/enroll/{employee_id}` | Check enrollment status |
-| DELETE | `/enroll/{employee_id}` | Remove a person |
-| POST | `/recognize` | Single-shot recognition |
-| GET | `/recognize/start` | Start live recognition + attendance loop |
-| GET | `/attendance/today` | Get today's attendance records |
-| GET | `/attendance/status` | Get attendance system state |
-| GET | `/attendance/history` | Get paginated attendance history |
-| GET | `/attendance/absent` | Get users not marked today |
-| GET | `/attendance/export/csv` | Download today's attendance as CSV |
-| GET | `/system/status` | Get live system metrics |
-| GET | `/docs` | Swagger UI |
+| POST | `/auth/login` | Login and get JWT token |
+| POST | `/auth/register` | Create new account |
+| GET | `/auth/me` | Get current user |
+| GET | `/auth/users` | List all accounts (admin only) |
 
----
-
-## Enrollment Request
-
-```json
-{
-  "name": "John Doe",
-  "employee_id": "EMP-001",
-  "department": "Engineering"
-}
-```
-
-## Recognition Response
-
-```json
-{
-  "matched": true,
-  "name": "John Doe",
-  "employee_id": "EMP-001",
-  "department": "Engineering",
-  "confidence": 0.85
-}
-```
-
-## Attendance Responses
-
-**Marked successfully:**
-```json
-{
-  "status": "success",
-  "message": "Attendance Marked",
-  "name": "John Doe",
-  "employee_id": "EMP-001",
-  "confidence": 0.85
-}
-```
-
-**Already marked today:**
-```json
-{
-  "status": "exists",
-  "message": "Already Marked Present",
-  "name": "John Doe",
-  "employee_id": "EMP-001",
-  "confidence": 0.85
-}
-```
-
-**Unknown face:**
-```json
-{
-  "status": "failed",
-  "message": "Unknown User"
-}
-```
-
-## History Query Parameters
-GET /attendance/history?employee_id=EMP-001&from_date=2026-01-01&to_date=2026-05-01&page=1&page_size=20
-
-| Parameter | Type | Description |
+### Enrollment
+| Method | Endpoint | Description |
 |---|---|---|
-| `employee_id` | string | Filter by employee ID |
-| `from_date` | date | Start date (YYYY-MM-DD) |
-| `to_date` | date | End date (YYYY-MM-DD) |
-| `page` | int | Page number (default 1) |
-| `page_size` | int | Records per page (default 20, max 100) |
+| POST | `/enroll/start` | Enroll new face |
+| GET | `/enroll/{employee_id}` | Check enrollment |
+| DELETE | `/enroll/{employee_id}` | Remove person |
 
-## System Status Response
+### Recognition
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/recognize/start` | Start live recognition loop |
+| POST | `/recognize` | Single frame recognition |
 
-```json
-{
-  "camera_active": true,
-  "fps": 24.5,
-  "avg_latency_ms": 38.2,
-  "total_frames": 1200,
-  "processed_frames": 400,
-  "enrolled_users": 5,
-  "attendance_today": 3,
-  "recognition_active": true
-}
-```
+### Attendance
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/attendance/today` | Today's attendance |
+| GET | `/attendance/history` | Paginated history with filters |
+| GET | `/attendance/absent` | Users not present today |
+| GET | `/attendance/export/csv` | Download CSV |
+| GET | `/attendance/status` | System attendance state |
+
+### System
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/system/status` | Live FPS, latency, stats |
 
 ---
 
-## Database Schema
-users
-─────────────────────────────────────────
-id            UUID        primary key
-name          VARCHAR
-employee_id   VARCHAR     unique
-department    VARCHAR
-enrolled_at   TIMESTAMP
-embeddings
-─────────────────────────────────────────
-id            INTEGER     primary key
-user_id       UUID        FK → users.id
-vector        JSONB       128-D FaceNet vector
-sample_idx    INTEGER     1–5
-created_at    TIMESTAMP
-attendance
-─────────────────────────────────────────
-id            INTEGER     primary key
-user_id       UUID        FK → users.id
-date          DATE
-time          TIME
-status        VARCHAR     e.g. "present"
-created_at    TIMESTAMP
+## Role-Based Access
+
+### Admin
+- Enroll and remove users
+- Start live recognition
+- View all attendance records
+- Export attendance CSV
+- View analytics and charts
+- Monitor system status
+- Manage login accounts
+
+### User
+- View own attendance history
+- View personal statistics
+- Export own attendance
+- View profile
 
 ---
 
 ## Attendance Flow
-camera frame
-↓
-face detection
-↓
-embedding generation
-↓
-recognition matching
-↓
-stable recognition (5 consecutive frames)
-↓
-cooldown check (15 second window)
-↓
-duplicate check (once per day)
-↓
-mark attendance in DB
-↓
-display result on camera overlay
+
+```
+Camera Frame
+     ↓
+Face Detection (Haar Cascade)
+     ↓
+CLAHE Normalization
+     ↓
+FaceNet Embedding (128-D)
+     ↓
+Cosine Similarity Matching
+     ↓
+Stable Recognition (5 consecutive frames)
+     ↓
+Cooldown Check (15 seconds)
+     ↓
+Duplicate Check (once per day)
+     ↓
+Mark Attendance in PostgreSQL
+     ↓
+Live Overlay on Camera Feed
+```
 
 ---
 
 ## Camera Overlay States
 
-| State | Overlay Text | Box Color |
-|---|---|---|
-| Accumulating frames | `Recognized (N/5)` | Green |
-| Attendance marked | `Attendance Marked` | Cyan |
-| Already marked today | `Already Marked Present` | Orange |
-| In cooldown | `Attendance Marked` | Orange |
-| Not recognized | `Unknown` | Red |
+| State | Color |
+|---|---|
+| Accumulating frames (N/5) | Green |
+| Attendance Marked | Cyan |
+| Already Marked Present | Orange |
+| Unknown | Red |
 
 ---
 
-## Performance Optimizations (Phase 5)
+## Database Schema
 
-| Feature | Detail |
-|---|---|
-| Frame skipping | Processes every 3rd frame only |
-| Overlay caching | Last known overlay redrawn on skipped frames |
-| DB prefetch | Embeddings fetched once, refreshed every 60 processed frames |
-| FPS tracking | Rolling average over last 30 frames |
-| Latency tracking | Per-frame processing time monitored live |
+```
+users          — enrolled face users
+embeddings     — 128-D FaceNet vectors (5 per user)
+attendance     — attendance records
+admin_users    — login accounts with roles
+```
 
 ---
 
@@ -261,11 +271,11 @@ display result on camera overlay
 | Similarity threshold | 0.65 |
 | Embeddings per user | 5 |
 | Max faces per frame | 3 |
-| Embedding model | FaceNet (128-D) |
-| Stable frames required | 5 consecutive |
+| Embedding model | FaceNet 128-D |
+| Stable frames required | 5 |
 | Cooldown after marking | 15 seconds |
 | Attendance per day | Once per user |
-| Frame skip rate | Every 3rd frame processed |
+| Frame skip rate | Every 3rd frame |
 
 ---
 
@@ -276,19 +286,6 @@ display result on camera overlay
 | Phase 1 | Haar Cascade face detection |
 | Phase 2 | FaceNet enrollment with PostgreSQL |
 | Phase 3 | Cosine similarity recognition |
-| Phase 4 | Attendance management with duplicate prevention |
-| Phase 5 | Dashboard, history, export, FPS optimization, system monitoring |
-
----
-
-## Usage Flow
-
-Enroll a person     →  POST /enroll/start
-Start recognition   →  GET  /recognize/start
-Face detected       →  system counts 5 stable frames
-Attendance marked   →  overlay shows "Attendance Marked"
-Check records       →  GET  /attendance/today
-View history        →  GET  /attendance/history
-Check absent        →  GET  /attendance/absent
-Export CSV          →  GET  /attendance/export/csv
-Monitor system      →  GET  /system/status
+| Phase 4 | Attendance management |
+| Phase 5 | Dashboard, history, CSV export, FPS optimization |
+| Phase 6 | Role-based auth, Admin and User panels |
