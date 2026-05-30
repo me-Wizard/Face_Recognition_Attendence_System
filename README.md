@@ -28,71 +28,69 @@ An enterprise-grade AI-powered face recognition attendance platform with role-ba
 
 ## Project Structure
 
-```
 Attencence_System/
 ├── Backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── api/
-│   │   │   └── routes/
-│   │   │       ├── auth.py
-│   │   │       ├── camera.py
-│   │   │       ├── detect.py
-│   │   │       ├── enroll.py
-│   │   │       ├── recognize.py
-│   │   │       ├── attendance.py
-│   │   │       └── system.py
-│   │   ├── core/
-│   │   │   ├── camera.py
-│   │   │   ├── detector.py
-│   │   │   ├── image_utils.py
-│   │   │   ├── embedding.py
-│   │   │   ├── matcher.py
-│   │   │   └── quality.py
+│   └── app/
+│       ├── main.py
+│       ├── api/
+│       │   └── routes/
+│       │       ├── auth.py
+│       │       ├── camera.py
+│       │       ├── detect.py
+│       │       ├── enroll.py
+│       │       ├── recognize.py
+│       │       ├── attendance.py
+│       │       └── system.py
+│       ├── core/
+│       │   ├── camera.py
+│       │   ├── detector.py
+│       │   ├── image_utils.py
+│       │   ├── embedding.py
+│       │   ├── matcher.py
+│       │   └── quality.py
+│       ├── services/
+│       │   ├── auth_service.py
+│       │   ├── detection_service.py
+│       │   ├── enrollment_service.py
+│       │   ├── recognition_service.py
+│       │   └── attendance_service.py
+│       └── db/
+│           ├── connection.py
+│           ├── models.py
+│           └── crud.py
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── login/
+│   │   │   ├── register/
+│   │   │   ├── admin/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── recognition/
+│   │   │   │   ├── enrollment/
+│   │   │   │   ├── attendance/
+│   │   │   │   ├── analytics/
+│   │   │   │   ├── system/
+│   │   │   │   └── users/
+│   │   │   └── user/
+│   │   │       ├── dashboard/
+│   │   │       ├── attendance/
+│   │   │       ├── statistics/
+│   │   │       ├── export/
+│   │   │       └── profile/
+│   │   ├── components/
+│   │   │   ├── admin/
+│   │   │   ├── user/
+│   │   │   └── shared/
+│   │   ├── context/
+│   │   ├── hooks/
 │   │   ├── services/
-│   │   │   ├── auth_service.py
-│   │   │   ├── detection_service.py
-│   │   │   ├── enrollment_service.py
-│   │   │   ├── recognition_service.py
-│   │   │   └── attendance_service.py
-│   │   └── db/
-│   │       ├── connection.py
-│   │       ├── models.py
-│   │       └── crud.py
-│   ├── requirements.txt
-│   └── .env
-└── frontend/
-    ├── src/
-    │   ├── app/
-    │   │   ├── login/
-    │   │   ├── register/
-    │   │   ├── admin/
-    │   │   │   ├── dashboard/
-    │   │   │   ├── recognition/
-    │   │   │   ├── enrollment/
-    │   │   │   ├── attendance/
-    │   │   │   ├── analytics/
-    │   │   │   ├── system/
-    │   │   │   └── users/
-    │   │   └── user/
-    │   │       ├── dashboard/
-    │   │       ├── attendance/
-    │   │       ├── statistics/
-    │   │       ├── export/
-    │   │       └── profile/
-    │   ├── components/
-    │   │   ├── admin/
-    │   │   ├── user/
-    │   │   └── shared/
-    │   ├── context/
-    │   ├── hooks/
-    │   ├── services/
-    │   ├── types/
-    │   └── lib/
-    ├── package.json
-    └── .env.local
-```
-
+│   │   ├── types/
+│   │   └── lib/
+│   ├── package.json
+│   └── .env.local
+├── requirements.txt
+├── .env
+└── README.md
 ---
 
 ## Setup
